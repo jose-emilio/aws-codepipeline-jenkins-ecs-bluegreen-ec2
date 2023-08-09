@@ -1,0 +1,247 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Creacion de una canalizacion CD que se iniciara con acciones sobre un repositorio de AWS CodeCommit para desplegar (Blue/Green) en un clúster de Amazon ECS respaldado por Amazon EC2 
+Parameters:
+  AmiID:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Description: ID de la AMI referenciada mediante un secreto de AWS SSM. Debe ser compatible con la arquitectura x86_64
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+  ImagenInicial:
+    Type: String
+    Description: URI de la imagen del contenedor Docker
+    Default: public.ecr.aws/docker/library/httpd:latest
+  Familia:
+    Type: String
+    Description: Familia de la definicion de tarea a crear
+    Default: familia-definicion-tarea
+  Prefijo:
+    Type: String
+    Description: Prefijo de los recursos
+    Default: DemoCodePipeline
+  CIDRVPC:
+    Type: String
+    Description: Bloque CIDR asignado a la VPC de despliegue
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Default: 10.2.0.0/16
+  NombreAccionJenkins:
+    Type: String
+    Description: Nombre de la accion configurada en el plugin de AWS CodePipeline para Jenkins
+    Default: Jenkins-Provider
+  NombreProyectoJenkins:
+    Type: String
+    Description: Nombre de la accion configurada en el plugin de AWS CodePipeline para Jenkins
+    Default: CodePipelineDemo
+
+Resources:
+
+  Source:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        NombreRepositorio: !Ref Prefijo
+      TemplateURL: ./codecommit/codecommit.yaml
+
+  Deploy:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        AmiID: !Ref AmiID
+        Imagen: !Ref ImagenInicial
+        VPC: !Ref CIDRVPC
+        Familia: !Ref Familia
+      TemplateURL: ./codedeploy/codedeploy.yaml
+
+  RepoDocker:
+    Type: AWS::ECR::Repository
+    Properties:
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration: 
+        ScanOnPush: true
+
+  BucketS3Artefactos:
+    Type: AWS::S3::Bucket
+  
+  RolCanalizacion:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - 'codepipeline.amazonaws.com'
+            Action: "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ecs:RegisterTaskDefinition'
+                Resource: '*'
+          PolicyName: PermisosECR
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'codecommit:CancelUploadArchive'
+                  - 'codecommit:GetBranch'
+                  - 'codecommit:GetCommit'
+                  - 'codecommit:GetUploadArchiveStatus'
+                  - 'codecommit:UploadArchive'
+                Resource: !GetAtt Source.Outputs.RepoARN
+          PolicyName: PermisosCodeCommit
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'codedeploy:CreateDeployment'
+                  - 'codedeploy:GetApplicationRevision'
+                  - 'codedeploy:GetDeployment'
+                  - 'codedeploy:GetDeploymentConfig'
+                  - 'codedeploy:RegisterApplicationRevision'
+                  - 'codedeploy:GetApplication'
+                  - 'codedeploy:CreateDeployment'
+                Resource: 
+                  - !Sub
+                    - arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentgroup:${aplicacion}/${grupo}
+                    - aplicacion: !GetAtt Deploy.Outputs.AplicacionCodeDeploy
+                      grupo: !GetAtt Deploy.Outputs.GrupoDespliegueCodeDeploy
+                  - !Sub
+                    - arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:application:${aplicacion}
+                    - aplicacion: !GetAtt Deploy.Outputs.AplicacionCodeDeploy
+                  - !Sub "arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentconfig:*"
+          PolicyName: PermisosCodeDeploy
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:*'
+                Resource: 
+                  - !GetAtt BucketS3Artefactos.Arn
+                  - !Sub
+                    - ${arn}/*
+                    - arn: !GetAtt BucketS3Artefactos.Arn
+          PolicyName: PermisosS3
+
+  RolEventBridge:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: EjecucionCanalizacion
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 'codepipeline:StartPipelineExecution'
+                Resource: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Canalizacion}"
+                    
+  ReglaEventBridge:
+    Type: 'AWS::Events::Rule'
+    Properties:
+      EventPattern:
+        source:
+          - aws.codecommit
+        detail-type:
+          - CodeCommit Repository State Change
+        resources:
+          - !Sub 
+            - arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${repo}
+            - repo: !GetAtt Source.Outputs.NombreRepo
+        detail:
+          event:
+            - referenceCreated
+            - referenceUpdated
+          referenceType:
+            - branch
+          referenceName:
+            - master
+      Targets:
+        - Arn: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Canalizacion}"
+          RoleArn: !GetAtt RolEventBridge.Arn
+          Id: canalizacion-codepipeline
+
+  Canalizacion:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      ArtifactStore: 
+        Type: S3
+        Location: !Ref BucketS3Artefactos
+      RestartExecutionOnUpdate: false
+      RoleArn: !GetAtt RolCanalizacion.Arn
+      Stages:
+        - Name: Origen
+          Actions:
+            - Name: CodeCommit-Repo
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeCommit
+                Version: 1
+              OutputArtifacts:
+                - Name: SalidaOrigen
+              Configuration:
+                RepositoryName: !GetAtt Source.Outputs.NombreRepo
+                BranchName: master
+                PollForSourceChanges: false
+        - Name: Compilacion
+          Actions:
+            - Name: Jenkins-Build
+              ActionTypeId:
+                Category: Build
+                Owner: Custom
+                Provider: !Ref NombreAccionJenkins
+                Version: 1
+              InputArtifacts:
+                - Name: SalidaOrigen
+              OutputArtifacts:
+                - Name: SalidaCompilacion
+              Configuration:
+                ProjectName: !Ref NombreProyectoJenkins
+        - Name: Despliegue
+          Actions:
+            - Name: CodeDeploy-ECS-EC2-Blue-Green
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CodeDeployToECS
+                Version: 1
+              InputArtifacts:
+                - Name: SalidaOrigen
+                - Name: SalidaCompilacion
+              Configuration:
+                ApplicationName: !GetAtt Deploy.Outputs.AplicacionCodeDeploy
+                DeploymentGroupName: !GetAtt Deploy.Outputs.GrupoDespliegueCodeDeploy                
+                AppSpecTemplateArtifact: SalidaOrigen
+                AppSpecTemplatePath: appspec.yaml
+                Image1ArtifactName: SalidaCompilacion
+                Image1ContainerName: IMAGE1_NAME
+                TaskDefinitionTemplateArtifact: SalidaCompilacion
+                TaskDefinitionTemplatePath: taskdef.json
+Outputs:
+  Canalizacion:
+    Description: Nombre de la canalizacion creada, necesario para configurar la tarea de Jenkins
+    Value: !Ref Canalizacion
+  RepositorioDocker:
+    Description: URI del repositorio de Amazon ECR, necesario para que la tarea de Jenkins cree la imagen Docker
+    Value: !GetAtt RepoDocker.RepositoryUri
+  DefinicionTarea:
+    Description: Nombre de la definicion de la tarea, necesario para configurar la tarea de Jenkins
+    Value: !GetAtt Deploy.Outputs.Tarea
+  URLAplicacion:
+    Description: URL del balanceador de carga de la aplicacion
+    Value: !GetAtt Deploy.Outputs.ALB

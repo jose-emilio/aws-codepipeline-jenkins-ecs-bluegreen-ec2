@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Creacion de un repositorio de AWS CodeCommit donde se almacenara el archivo Dockerfile y los archivos buildspec.yaml y appspec.yaml, necesarios para la canalizacion de AWS codepipeline
+Parameters:
+  NombreRepositorio:
+    Type: String
+    Default: CodePipeline-demo-repo
+Resources:
+  Repositorio:
+    Type: AWS::CodeCommit::Repository
+    Properties:
+      Code:
+        BranchName: master
+        S3: 
+          Bucket: aws-academy-practicas
+          Key: codepipelinedemo/code.zip
+      RepositoryDescription: Repositorio de codigo Docker
+      RepositoryName: !Sub "${NombreRepositorio}-repo"
+Outputs:
+  RepoURI:
+    Description: URI del repositorio
+    Value: !GetAtt Repositorio.CloneUrlHttp
+  RepoARN:
+    Description: ARN del repositorio
+    Value: !GetAtt Repositorio.Arn
+  NombreRepo:
+    Description: Nombre del repositorio
+    Value: !GetAtt Repositorio.Name
