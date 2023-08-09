@@ -108,13 +108,13 @@ Resources:
                   - 'codedeploy:CreateDeployment'
                 Resource: 
                   - !Sub
-                    - arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentgroup:${aplicacion}/${grupo}
+                    - arn:${AWS::Partition}:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentgroup:${aplicacion}/${grupo}
                     - aplicacion: !GetAtt Deploy.Outputs.AplicacionCodeDeploy
                       grupo: !GetAtt Deploy.Outputs.GrupoDespliegueCodeDeploy
                   - !Sub
-                    - arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:application:${aplicacion}
+                    - arn:${AWS::Partition}:codedeploy:${AWS::Region}:${AWS::AccountId}:application:${aplicacion}
                     - aplicacion: !GetAtt Deploy.Outputs.AplicacionCodeDeploy
-                  - !Sub "arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentconfig:*"
+                  - !Sub "arn:${AWS::Partition}:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentconfig:*"
           PolicyName: PermisosCodeDeploy
         - PolicyDocument:
             Version: 2012-10-17
@@ -148,7 +148,7 @@ Resources:
             Statement:
               - Effect: Allow
                 Action: 'codepipeline:StartPipelineExecution'
-                Resource: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Canalizacion}"
+                Resource: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${Canalizacion}"
                     
   ReglaEventBridge:
     Type: 'AWS::Events::Rule'
@@ -160,7 +160,7 @@ Resources:
           - CodeCommit Repository State Change
         resources:
           - !Sub 
-            - arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${repo}
+            - arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:${repo}
             - repo: !GetAtt Source.Outputs.NombreRepo
         detail:
           event:
@@ -171,7 +171,7 @@ Resources:
           referenceName:
             - master
       Targets:
-        - Arn: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${Canalizacion}"
+        - Arn: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${Canalizacion}"
           RoleArn: !GetAtt RolEventBridge.Arn
           Id: canalizacion-codepipeline
 
