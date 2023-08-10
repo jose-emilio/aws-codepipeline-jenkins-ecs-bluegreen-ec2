@@ -22,7 +22,7 @@ Parameters:
     Description: Bloque CIDR asignado a la VPC de despliegue
     AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
     Default: 10.2.0.0/16
-  NombreAccionJenkins:
+  ProveedorJenkins:
     Type: String
     Description: Nombre de la accion configurada en el plugin de AWS CodePipeline para Jenkins
     Default: Jenkins-Provider
@@ -217,7 +217,7 @@ Resources:
               ActionTypeId:
                 Category: Build
                 Owner: Custom
-                Provider: !Ref NombreAccionJenkins
+                Provider: !Ref ProveedorJenkins
                 Version: 1
               InputArtifacts:
                 - Name: SalidaOrigen
