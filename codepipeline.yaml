@@ -30,6 +30,10 @@ Parameters:
     Type: String
     Description: Nombre de la accion configurada en el plugin de AWS CodePipeline para Jenkins
     Default: CodePipelineDemo
+  Correo:
+    Type: String
+    Description: Correo electronico donde se reciben las notificaciones para la aprobacion manual
+    Default: jovesau@gmail.com
 
 Resources:
 
@@ -128,7 +132,16 @@ Resources:
                     - ${arn}/*
                     - arn: !GetAtt BucketS3Artefactos.Arn
           PolicyName: PermisosS3
-
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'sns:Publish'
+                Resource: 
+                  - !Ref Notificaciones
+          PolicyName: PermisosSNS
+          
   RolEventBridge:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -214,6 +227,16 @@ Resources:
                 ProjectName: !Ref NombreProyectoJenkins
         - Name: Despliegue
           Actions:
+            - Name: Aprobacion-Manual
+              ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Provider: Manual
+                Version: 1
+              Configuration:
+                CustomData: "Se necesita aprobación manual para el despliegue de la aplicación"
+                NotificationArn: !Ref Notificaciones
+              RunOrder: 1
             - Name: CodeDeploy-ECS-EC2-Blue-Green
               ActionTypeId:
                 Category: Deploy
@@ -232,6 +255,16 @@ Resources:
                 Image1ContainerName: IMAGE1_NAME
                 TaskDefinitionTemplateArtifact: SalidaCompilacion
                 TaskDefinitionTemplatePath: taskdef.json
+              RunOrder: 2
+
+  Notificaciones:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: Notificaciones de despliegue
+      Subscription:
+        - Endpoint: !Ref Correo
+          Protocol: email
+
 Outputs:
   Canalizacion:
     Description: Nombre de la canalizacion creada, necesario para configurar la tarea de Jenkins
