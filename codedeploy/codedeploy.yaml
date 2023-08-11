@@ -214,7 +214,7 @@ Resources:
         AutoScalingGroupArn: !Ref GrupoAutoEscalado
         ManagedScaling: 
           Status: ENABLED
-          TargetCapacity: 70
+          TargetCapacity: 90
         ManagedTerminationProtection: DISABLED
 
   AsociacionProveedorCapacidad:
