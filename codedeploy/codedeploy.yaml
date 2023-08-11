@@ -102,17 +102,19 @@ Resources:
             amazon-linux-extras install -y ecs
             echo "ECS_CLUSTER=${ClusterECS}" >> /etc/ecs/ecs.config
             systemctl enable --now --no-block ecs.service
-            wget https://aws-codedeploy-us-east-1.s3.amazonaws.com/latest/install
-            chmod +x ./install
-            ./install auto
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource GrupoAutoEscalado --region ${AWS::Region}
         TagSpecifications:
           - ResourceType: instance
             Tags:
               - Key: Name
-                Value: CodeDeploy-Instance
+                Value: ECS-Instance
 
   GrupoAutoEscalado:
     Type: AWS::AutoScaling::AutoScalingGroup
+    CreationPolicy:
+      ResourceSignal:
+        Count: 2
+        Timeout: PT10M
     Properties:
       VPCZoneIdentifier:
         - !GetAtt miVPC.Outputs.Privada1
@@ -204,6 +206,27 @@ Resources:
         - ContainerName: httpd
           ContainerPort: 80
           TargetGroupArn: !Ref GrupoDestinosBlue
+
+  ProveedorCapacidad:
+    Type: AWS::ECS::CapacityProvider
+    Properties: 
+      AutoScalingGroupProvider: 
+        AutoScalingGroupArn: !Ref GrupoAutoEscalado
+        ManagedScaling: 
+          Status: ENABLED
+          TargetCapacity: 70
+        ManagedTerminationProtection: DISABLED
+
+  AsociacionProveedorCapacidad:
+    Type: AWS::ECS::ClusterCapacityProviderAssociations
+    Properties:
+      CapacityProviders:
+        - !Ref ProveedorCapacidad
+      Cluster: !Ref ClusterECS
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: !Ref ProveedorCapacidad
+          Base: 0
+          Weight: 100
 
   Aplicacion:
     Type: AWS::CodeDeploy::Application
