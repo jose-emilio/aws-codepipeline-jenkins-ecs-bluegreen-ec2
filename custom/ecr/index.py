@@ -1,7 +1,7 @@
 import boto3
 import cfnresponse
 
-response_data = {}
+datos = {}
 
 client = boto3.client('ecr')
 
@@ -18,16 +18,16 @@ def lambda_handler(event, context):
                 'encryptionType': 'AES256'
                 }
             )
-            response_data['Uri'] = response['repository']['repositoryUri']
-            response_data['Nombre'] = response['repository']['repositoryName']
+            datos['Uri'] = response['repository']['repositoryUri']
+            datos['Nombre'] = response['repository']['repositoryName']
         elif event['RequestType'] == 'Delete':
             client.delete_repository(
                 repositoryName=repo.lower(),
                 force=True
             )
         
-        cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data,repo.lower())
+        cfnresponse.send(event, context, cfnresponse.SUCCESS, datos,repo.lower())
         
     except Exception as e:
-        response_data['Error'] = str(e)
-        cfnresponse.send(event, context, cfnresponse.FAILED, response_data)
+        datos['Error'] = str(e)
+        cfnresponse.send(event, context, cfnresponse.FAILED, datos)
