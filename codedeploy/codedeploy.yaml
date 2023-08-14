@@ -298,7 +298,7 @@ Resources:
       Code: ./lambda/afterallowtesttraffic
       Handler: main.lambda_handler
       Runtime: python3.11
-      Role: !GetAtt RolLambdaAAT.Arn
+      Role: !GetAtt RolLambdaHook.Arn
       Environment:
         Variables:
           urltest: 
@@ -306,7 +306,21 @@ Resources:
               - "http://${dns}:8000"
               - dns: !GetAtt Balanceador.DNSName
 
-  RolLambdaAAT:
+  LambdaAfterAllowTraffic:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code: ./lambda/afterallowtraffic
+      Handler: main.lambda_handler
+      Runtime: python3.11
+      Role: !GetAtt RolLambdaHook.Arn
+      Environment:
+        Variables:
+          urlprod: 
+            !Sub 
+              - "http://${dns}"
+              - dns: !GetAtt Balanceador.DNSName
+
+  RolLambdaHook:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:

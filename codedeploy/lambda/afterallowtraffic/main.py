@@ -9,7 +9,7 @@ def lambda_handler(event, context):
     idDep = event["DeploymentId"]
     idHook = event["LifecycleEventHookExecutionId"]
     http = urllib3.PoolManager()
-    url = os.environ["urltest"]
+    url = os.environ["urlprod"]
     resultado = 'Succeeded'
     test = 1
     while test < 10 and resultado == 'Succeeded':
