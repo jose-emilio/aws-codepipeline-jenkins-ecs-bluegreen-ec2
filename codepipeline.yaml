@@ -4,7 +4,7 @@ Parameters:
   AmiID:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Description: ID de la AMI referenciada mediante un secreto de AWS SSM. Debe ser compatible con la arquitectura x86_64
-    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-arm64-gp2'
   NombreRepo:
     Type: String
     Description: Nombre del repositorio de Amazon ECR que se creara

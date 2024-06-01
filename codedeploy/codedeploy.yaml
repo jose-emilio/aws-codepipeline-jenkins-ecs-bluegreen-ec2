@@ -93,7 +93,7 @@ Resources:
     Properties:
       LaunchTemplateData:
         ImageId: !Ref AmiID
-        InstanceType: t3.small
+        InstanceType: t4g.small
         SecurityGroupIds:
           - !GetAtt GrupoSeguridadEC2.GroupId
         IamInstanceProfile: 
@@ -195,8 +195,11 @@ Resources:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: !Ref Familia
-      Memory: "512"
-      Cpu: "256"
+      Memory: 512
+      Cpu: 256
+      RuntimePlatform:
+        OperatingSystemFamily: LINUX
+        CpuArchitecture: ARM64
       ContainerDefinitions:
         - Name: httpd
           Essential: true
@@ -228,7 +231,7 @@ Resources:
         AutoScalingGroupArn: !Ref GrupoAutoEscalado
         ManagedScaling: 
           Status: ENABLED
-          TargetCapacity: 90
+          TargetCapacity: 70
         ManagedTerminationProtection: DISABLED
 
   AsociacionProveedorCapacidad:
