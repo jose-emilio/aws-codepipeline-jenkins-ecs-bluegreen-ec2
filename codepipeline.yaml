@@ -380,7 +380,7 @@ Outputs:
     Value: !Ref Canalizacion
   RepositorioDocker:
     Description: Nombre del repositorio de Amazon ECR, necesario para que la tarea de Jenkins cree la imagen Docker
-    Value: !GetAtt RepoDocker.Uri
+    Value: !Ref RepoDocker
   DefinicionTarea:
     Description: Nombre de la definicion de la tarea, necesario para configurar la tarea de Jenkins
     Value: !GetAtt Deploy.Outputs.Tarea
