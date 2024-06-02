@@ -353,12 +353,11 @@ Resources:
                 Provider: CodeDeployToECS
                 Version: 1
               InputArtifacts:
-                - Name: SalidaOrigen
                 - Name: SalidaCompilacion
               Configuration:
                 ApplicationName: !GetAtt Deploy.Outputs.AplicacionCodeDeploy
                 DeploymentGroupName: !GetAtt Deploy.Outputs.GrupoDespliegueCodeDeploy                
-                AppSpecTemplateArtifact: SalidaOrigen
+                AppSpecTemplateArtifact: SalidaCompilacion
                 AppSpecTemplatePath: appspec.yaml
                 Image1ArtifactName: SalidaCompilacion
                 Image1ContainerName: IMAGE1_NAME
@@ -387,3 +386,9 @@ Outputs:
   URLAplicacion:
     Description: URL del balanceador de carga de la aplicacion
     Value: !GetAtt Deploy.Outputs.ALB
+  LambdaAAT:
+    Description: Nombre de la funcion Lambda que realiza las comprobaciones sobre el despliegue tras permitir el trafico
+    Value: !GetAtt Deploy.Outputs.LambdaAfterAllowTraffic
+  LambdaAATT:
+    Description: Nombre de la funcion Lambda que realiza las comprobaciones sobre el despliegue tras permitir el trafico de prueba
+    Value: !GetAtt Deploy.Outputs.LambdaAfterAllowTestTraffic

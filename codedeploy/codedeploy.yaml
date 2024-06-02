@@ -373,3 +373,9 @@ Outputs:
   Tarea:
     Description: Definicion de la tarea
     Value: !Ref DefinicionTarea
+  LambdaAfterAllowTraffic:
+    Description: Nombre de la funcion Lambda que se ejecutara tras permitir el trafico
+    Value: !Ref LambdaAfterAllowTraffic
+  LambdaAfterAllowTestTraffic:
+    Description: Nombre de la funcion Lambda que se ejecutara tras permitir el trafico
+    Value: !Ref LambdaAfterAllowTestTraffic
