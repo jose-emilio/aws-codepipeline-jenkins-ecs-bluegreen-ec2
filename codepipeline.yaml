@@ -392,3 +392,6 @@ Outputs:
   LambdaAATT:
     Description: Nombre de la funcion Lambda que realiza las comprobaciones sobre el despliegue tras permitir el trafico de prueba
     Value: !GetAtt Deploy.Outputs.LambdaAfterAllowTestTraffic
+  Notificacion:
+    Description: Nombre del tema de notificaciones de despliegue
+    Value: !Ref Notificaciones
