@@ -29,7 +29,11 @@ Parameters:
   ProveedorJenkins:
     Type: String
     Description: Nombre de la accion configurada en el plugin de AWS CodePipeline para Jenkins
-    Default: Jenkins-Provider
+    Default: Custom-Jenkins
+  VersionProveedorJenkins:
+    Type: Number
+    Description: Version de la accion configurada en el plugin de AWS CodePipeline para Jenkins
+    Default: 1
   NombreProyectoJenkins:
     Type: String
     Description: Nombre de la accion configurada en el plugin de AWS CodePipeline para Jenkins
@@ -37,7 +41,11 @@ Parameters:
   Correo:
     Type: String
     Description: Correo electronico donde se reciben las notificaciones para la aprobacion manual
-    Default: jovesau@gmail.com
+    Default: joseemilio@aws-training.org
+  JenkinsURL:
+    Type: String
+    Description: URL del servidor Jenkins
+    Default: https://jenkins.aws-training.org:8443
 
 Resources:
 
@@ -297,8 +305,37 @@ Resources:
           RoleArn: !GetAtt RolEventBridge.Arn
           Id: canalizacion-codepipeline
 
+  CustomJenkins:
+    Type: AWS::CodePipeline::CustomActionType
+    Properties:
+      Category: Build
+      Provider: !Ref ProveedorJenkins
+      Version: !Ref VersionProveedorJenkins
+      ConfigurationProperties:
+        - 
+          Description: "Nombre del proyecto de building en Jenkins." 
+          Key: true 
+          Name: ProjectName
+          Queryable: false
+          Required: true 
+          Secret: false 
+          Type: String 
+      InputArtifactDetails:
+        MinimumCount: 0
+        MaximumCount: 5
+      OutputArtifactDetails:
+        MinimumCount: 0
+        MaximumCount: 5
+      Settings: 
+        EntityUrlTemplate: !Join ['', [!Ref JenkinsURL, "/job/{Config:ProjectName}/"]]
+        ExecutionUrlTemplate: !Join ['', [!Ref JenkinsURL, "/job/{Config:ProjectName}/{ExternalExecutionId}/"]]
+      Tags:
+        - Key: Name
+          Value: Jenkins-accion-personalizada
+
   Canalizacion:
     Type: AWS::CodePipeline::Pipeline
+    DependsOn: CustomJenkins
     Properties:
       PipelineType: V2
       ExecutionMode: QUEUED
@@ -329,7 +366,7 @@ Resources:
                 Category: Build
                 Owner: Custom
                 Provider: !Ref ProveedorJenkins
-                Version: 1
+                Version: !Ref VersionProveedorJenkins
               InputArtifacts:
                 - Name: SalidaOrigen
               OutputArtifacts:
