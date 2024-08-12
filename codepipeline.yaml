@@ -300,6 +300,8 @@ Resources:
   Canalizacion:
     Type: AWS::CodePipeline::Pipeline
     Properties:
+      PipelineType: V2
+      ExecutionMode: QUEUED
       ArtifactStore: 
         Type: S3
         Location: !GetAtt BucketS3Artefactos.NombreBucket
