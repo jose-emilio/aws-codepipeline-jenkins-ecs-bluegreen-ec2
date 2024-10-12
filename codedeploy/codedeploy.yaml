@@ -219,6 +219,9 @@ Resources:
         Type: CODE_DEPLOY
       DesiredCount: 3
       TaskDefinition: !Ref DefinicionTarea
+      PlacementStrategies:
+        - Type: binpack
+          Field: cpu 
       LoadBalancers:
         - ContainerName: httpd
           ContainerPort: 80
