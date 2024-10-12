@@ -316,7 +316,7 @@ Resources:
           Description: "Nombre del proyecto de building en Jenkins." 
           Key: true 
           Name: ProjectName
-          Queryable: false
+          Queryable: true
           Required: true 
           Secret: false 
           Type: String 
