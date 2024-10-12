@@ -279,10 +279,14 @@ Resources:
               - Effect: Allow
                 Action: 'codepipeline:StartPipelineExecution'
                 Resource: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${Canalizacion}"
+              - Effect: Allow
+                Action: 'sns:Publish'
+                Resource: !Ref Notificaciones
                     
   ReglaEventBridge:
     Type: 'AWS::Events::Rule'
     Properties:
+      Description: "Regla de inicio de la canalizacion de AWS CodePipeline"
       EventPattern:
         source:
           - aws.codecommit
@@ -411,6 +415,39 @@ Resources:
       Subscription:
         - Endpoint: !Ref Correo
           Protocol: email
+  
+  PoliticaNotificacion:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref Notificaciones
+      PolicyDocument:
+        Id: Notificaciones
+        Version: '2012-10-17'
+        Statement:
+          - Sid: Allow_Publish
+            Effect: Allow
+            Principal:
+              Service: codestar-notifications.amazonaws.com
+            Action: 'sns:Publish'
+            Resource: !Ref Notificaciones
+
+  NotificacionesCanalizacion:
+    Type: AWS::CodeStarNotifications::NotificationRule
+    Properties:
+      DetailType: FULL
+      EventTypeIds: 
+        - codepipeline-pipeline-pipeline-execution-succeeded
+        - codepipeline-pipeline-pipeline-execution-failed
+        - codepipeline-pipeline-stage-execution-succeeded
+        - codepipeline-pipeline-stage-execution-failed
+        - codepipeline-pipeline-action-execution-succeeded
+        - codepipeline-pipeline-action-execution-failed
+      Name: Demo-Notificaciones-CodePipeline
+      Resource: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${Canalizacion}"
+      Targets: 
+        - TargetType: SNS
+          TargetAddress: !Ref Notificaciones
 
 Outputs:
   Canalizacion:
