@@ -29,7 +29,7 @@ Parameters:
   ProveedorJenkins:
     Type: String
     Description: Nombre de la accion configurada en el plugin de AWS CodePipeline para Jenkins
-    Default: Custom-Jenkins
+    Default: External-Jenkins
   VersionProveedorJenkins:
     Type: Number
     Description: Version de la accion configurada en el plugin de AWS CodePipeline para Jenkins
